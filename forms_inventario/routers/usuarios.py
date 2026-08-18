@@ -27,7 +27,7 @@ router = APIRouter(
 async def create_usuario(
     user_in: UsuarioCreate, db: Annotated[AsyncSession, Depends(get_db)]
 ):
-    # Verificar se email ja existe
+
     stmt = select(Usuario).where(Usuario.email == user_in.email)
     result = await db.execute(stmt)
     if result.scalars().first():

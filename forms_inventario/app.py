@@ -13,23 +13,22 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Testar conexao com o banco
+
     try:
         async with engine.begin() as conn:
             await conn.execute(text('SELECT 1'))
         logger.info('Conexao com banco de dados estabelecida com sucesso.')
     except Exception as e:
         logger.error(f'Falha ao conectar no banco de dados: {e}')
-        # Em producao, poderiamos falhar silenciosamente ou encerrar a app.
-        # Aqui apenas logamos.
+
     yield
-    # Shutdown
+
     await engine.dispose()
 
 
 app = FastAPI(title='API Sistema Patrimonial', lifespan=lifespan)
 
-# CORS
+
 origins = [origin.strip() for origin in settings.cors_origins.split(',')]
 
 app.add_middleware(
@@ -43,7 +42,7 @@ app.add_middleware(
 
 @app.get('/health', tags=['Health'])
 async def health_check():
-    """Verifica se a API e o banco estao online."""
+
     try:
         async with engine.begin() as conn:
             await conn.execute(text('SELECT 1'))
@@ -58,7 +57,6 @@ async def health_check():
     return {'status': 'ok', 'database': db_status}
 
 
-# Registrar routers
 from forms_inventario.routers import auth, registros, usuarios
 
 app.include_router(auth.router)

@@ -61,9 +61,6 @@ async def create_registros_batch(
 ):
     created_registros = []
 
-    # Processa um por um para facilitar fallback de erros
-    # Em uma aplicacao real de larga escala, poderiamos usar insert().values()
-    # com on_conflict_do_nothing
     for reg_in in registros_in:
         stmt = select(Registro).where(
             Registro.num_patrimonio == reg_in.num_patrimonio

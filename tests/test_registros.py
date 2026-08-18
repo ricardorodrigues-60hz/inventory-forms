@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import pytest
 from httpx import AsyncClient
 
@@ -22,7 +24,7 @@ async def test_criar_registro(
         headers={'Authorization': f'Bearer {token_valido}'},
         json=registro_payload,
     )
-    assert response.status_code == 201
+    assert response.status_code == HTTPStatus.CREATED
     assert response.json()['num_patrimonio'] == '123456'
 
 
@@ -43,7 +45,7 @@ async def test_criar_registro_duplicado(
         headers={'Authorization': f'Bearer {token_valido}'},
         json=registro_payload,
     )
-    assert response.status_code == 409
+    assert response.status_code == HTTPStatus.CONFLICT
 
 
 @pytest.mark.asyncio
@@ -70,5 +72,5 @@ async def test_batch_registros(client: AsyncClient, token_valido):
         headers={'Authorization': f'Bearer {token_valido}'},
         json=payloads,
     )
-    assert response.status_code == 201
+    assert response.status_code == HTTPStatus.CREATED
     assert len(response.json()) == 2

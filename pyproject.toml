@@ -15,11 +15,6 @@ dependencies = [
     "aiosqlite (>=0.22.1,<0.23.0)"
 ]
 
-
-[build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
-
 [dependency-groups]
 dev = [
     "pytest (>=9.1.1,<10.0.0)",
@@ -42,4 +37,27 @@ quote-style = 'single'
 
 [tool.pytest]
 pythonpath = ['.']
-addopts = ['-p', 'no:warnings', '--cov=fast_zero', '--cov-context=test']
+addopts = ['-p', 'no:warnings', '--cov=forms_inventario', '--cov-context=test']
+
+[tool.poe.tasks]
+lint = "ruff check"
+format.sequence = [
+  { cmd = "ruff check --fix" },
+  { cmd = "ruff format" },
+]
+serve = "fastapi dev forms_inventario/app.py"
+test.sequence = [
+  "lint",
+  { cmd = "pytest -s -x -vv $POE_EXTRA_ARGS" },
+  { cmd = "coverage html --show-contexts" },
+]
+
+[tool.poe]
+poetry_command = ""
+
+[tool.typos.files]
+extend-exclude = ["*.md"]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

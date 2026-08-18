@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Plano de Trabalho — Sistema Patrimonial</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #f1f5f9;
+    --surface:   #ffffff;
+    --border:    #e2e8f0;
+    --border-s:  #cbd5e1;
+    --text:      #1e293b;
+    --muted:     #64748b;
+    --faint:     #94a3b8;
+
+    --green:     #059669;
+    --green-bg:  #ecfdf5;
+    --green-bd:  #a7f3d0;
+
+    --amber:     #d97706;
+    --amber-bg:  #fffbeb;
+    --amber-bd:  #fde68a;
+
+    --red:       #dc2626;
+    --red-bg:    #fef2f2;
+    --red-bd:    #fecaca;
+
+    --purple:    #7c3aed;
+    --purple-bg: #f5f3ff;
+    --purple-bd: #ddd6fe;
+
+    --mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13.5px;
+    line-height: 1.55;
+    padding: 28px 20px 48px;
+  }
+
+  /* ── Header ─────────────────────────────── */
+  .header { margin-bottom: 24px; }
+  .header h1 { font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
+  .header p  { color: var(--muted); font-size: 13px; margin-top: 3px; }
+
+  /* ── Legend ─────────────────────────────── */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-bottom: 20px;
+  }
+  .leg {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11.5px; color: var(--muted);
+  }
+  .leg-dot {
+    width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* ── Blockers banner ─────────────────────── */
+  .blockers {
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-bd);
+    border-left: 3px solid var(--amber);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 24px;
+  }
+  .blockers-title {
+    font-size: 12px; font-weight: 700;
+    color: var(--amber); letter-spacing: .4px;
+    text-transform: uppercase; margin-bottom: 10px;
+  }
+  .blocker-row {
+    display: flex; align-items: baseline; gap: 10px;
+    margin-bottom: 6px; font-size: 12.5px;
+  }
+  .blocker-row:last-child { margin-bottom: 0; }
+  .b-tag {
+    font-family: var(--mono);
+    font-size: 10.5px; font-weight: 600;
+    background: #fef3c7; color: #92400e;
+    border: 1px solid var(--amber-bd);
+    border-radius: 4px; padding: 1px 7px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .b-desc { color: var(--text); }
+  .b-unlocks { color: var(--muted); font-size: 11.5px; }
+
+  /* ── Grid ────────────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 680px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ── Track ───────────────────────────────── */
+  .track-label {
+    font-size: 12px; font-weight: 700; letter-spacing: .6px;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .track-label span {
+    display: inline-block; padding: 2px 9px;
+    border-radius: 12px; font-size: 10px;
+  }
+
+  /* ── Phase card ──────────────────────────── */
+  .phase {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: box-shadow .15s;
+  }
+  .phase:hover { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+
+  .phase-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 14px;
+    cursor: pointer; user-select: none;
+  }
+
+  .phase-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .phase-name { font-weight: 600; font-size: 13px; flex: 1; }
+
+  .phase-badge {
+    font-size: 10.5px; font-weight: 600;
+    padding: 2px 8px; border-radius: 10px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+
+  .chevron {
+    font-size: 10px; color: var(--faint);
+    transition: transform .2s; flex-shrink: 0;
+  }
+  .chevron.open { transform: rotate(90deg); }
+
+  /* Status colour sets */
+  .s-green { border-left: 3px solid var(--green); }
+  .s-green .phase-num   { background: var(--green-bg); color: var(--green); }
+  .s-green .phase-badge { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+
+  .s-amber { border-left: 3px solid var(--amber); }
+  .s-amber .phase-num   { background: var(--amber-bg); color: var(--amber); }
+  .s-amber .phase-badge { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd); }
+
+  .s-red { border-left: 3px solid var(--red); }
+  .s-red .phase-num   { background: var(--red-bg); color: var(--red); }
+  .s-red .phase-badge { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-bd); }
+
+  .s-purple { border-left: 3px solid var(--purple); }
+  .s-purple .phase-num   { background: var(--purple-bg); color: var(--purple); }
+  .s-purple .phase-badge { background: var(--purple-bg); color: var(--purple); border: 1px solid var(--purple-bd); }
+
+  /* ── Tasks list ──────────────────────────── */
+  .tasks {
+    display: none;
+    border-top: 1px solid var(--border);
+    padding: 10px 14px 12px;
+  }
+  .tasks.open { display: block; }
+
+  .wait-note {
+    font-size: 11.5px; color: var(--amber);
+    background: var(--amber-bg);
+    border-radius: 5px; padding: 5px 9px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .dep-note {
+    font-size: 11.5px; color: var(--purple);
+    background: var(--purple-bg);
+    border-radius: 5px; padding: 5px 9px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 5px;
+  }
+
+  .task-item {
+    display: flex; align-items: flex-start; gap: 9px;
+    padding: 3.5px 0; font-size: 12.5px;
+    border-bottom: 1px solid var(--bg);
+  }
+  .task-item:last-child { border-bottom: none; }
+
+  .cb {
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--border-s);
+    border-radius: 3px; flex-shrink: 0;
+    margin-top: 2px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .1s, border-color .1s;
+  }
+  .cb.checked { background: var(--green); border-color: var(--green); }
+  .cb.checked::after { content: '✓'; color: white; font-size: 9px; font-weight: 700; }
+
+  .task-text { flex: 1; color: var(--text); }
+  .task-text.done { color: var(--faint); text-decoration: line-through; }
+
+  .task-tag {
+    font-family: var(--mono); font-size: 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 3px; padding: 0 5px; color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* ── Progress bar ────────────────────────── */
+  .progress-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 14px 10px;
+  }
+  .progress-bar {
+    flex: 1; height: 3px; background: var(--bg);
+    border-radius: 2px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: var(--green);
+    border-radius: 2px; transition: width .3s;
+  }
+  .progress-label {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--muted); white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Plano de Trabalho — Sistema Patrimonial</h1>
+  <p>Backend (FastAPI + PostgreSQL) e Frontend (React + PWA + Dexie.js)</p>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:var(--green)"></div> Pronto para iniciar</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--amber)"></div> Aguarda decisão externa</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--red)"></div> Aguarda campos do formulário</div>
+  <div class="leg"><div class="leg-dot" style="background:var(--purple)"></div> Depende de fase anterior</div>
+</div>
+
+<!-- Blockers -->
+<div class="blockers">
+  <div class="blockers-title">⚠ Definições pendentes — desbloqueiam o trabalho</div>
+  <div class="blocker-row">
+    <span class="b-tag">CAMPOS</span>
+    <span class="b-desc">Campos e checkboxes do formulário</span>
+    <span class="b-unlocks">→ desbloqueia Backend F3, Frontend F2 e F4</span>
+  </div>
+  <div class="blocker-row">
+    <span class="b-tag">BANCO</span>
+    <span class="b-desc">Tipo do banco interno (SQL Server, MySQL, PostgreSQL…)</span>
+    <span class="b-unlocks">→ desbloqueia Backend F2</span>
+  </div>
+  <div class="blocker-row">
+    <span class="b-tag">HTTPS</span>
+    <span class="b-desc">Estratégia HTTPS (mkcert / Cloudflare Tunnel / Caddy)</span>
+    <span class="b-unlocks">→ desbloqueia Backend F5 e câmera no celular</span>
+  </div>
+</div>
+
+<!-- Grid -->
+<div class="grid">
+
+  <!-- ═══ BACKEND ═══ -->
+  <div>
+    <div class="track-label">
+      🐍 Backend
+      <span style="background:#fef9c3;color:#854d0e">FastAPI · Python · Docker</span>
+    </div>
+
+    <!-- B1 -->
+    <div class="phase s-green" id="b1">
+      <div class="phase-head" onclick="toggle('b1')">
+        <div class="phase-num">1</div>
+        <div class="phase-name">Setup do Projeto</div>
+        <div class="phase-badge">Pronto para iniciar</div>
+        <div class="chevron" id="b1-ch">▶</div>
+      </div>
+      <div class="tasks" id="b1-tasks">
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Estrutura de pastas: <code>main.py, routers/, models/, schemas/, database.py</code></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Dockerfile (python:3.12-slim)</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">docker-compose.yml com PostgreSQL 16 + volume persistente</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Arquivo <code>.env</code> com DATABASE_URL, SECRET_KEY</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Dependências: <span class="task-tag">fastapi</span> <span class="task-tag">uvicorn[standard]</span> <span class="task-tag">sqlalchemy[asyncio]</span> <span class="task-tag">python-dotenv</span> <span class="task-tag">slowapi</span> <span class="task-tag">alembic</span></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Endpoint <code>GET /health</code> para verificar se API está viva</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">CORS middleware configurável via variável de ambiente</div></div>
+      </div>
+      <div class="progress-row" id="b1-prog">
+        <div class="progress-bar"><div class="progress-fill" id="b1-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="b1-lbl">0 / 7</div>
+      </div>
+    </div>
+
+    <!-- B2 -->
+    <div class="phase s-amber" id="b2">
+      <div class="phase-head" onclick="toggle('b2')">
+        <div class="phase-num">2</div>
+        <div class="phase-name">Conexão com Banco</div>
+        <div class="phase-badge">Aguarda tipo do banco</div>
+        <div class="chevron" id="b2-ch">▶</div>
+      </div>
+      <div class="tasks" id="b2-tasks">
+        <div class="wait-note">⚠ Aguardando: tipo do banco interno da empresa</div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Instalar driver correto: <span class="task-tag">asyncpg</span> ou <span class="task-tag">aioodbc</span> ou <span class="task-tag">aiomysql</span></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text"><code>database.py</code>: engine assíncrono + sessão por request via <code>Depends</code></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Connection pool configurado (max 10 conexões)</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Teste de conexão no startup da aplicação</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Tratar erro de banco indisponível com resposta 503</div></div>
+      </div>
+      <div class="progress-row" id="b2-prog">
+        <div class="progress-bar"><div class="progress-fill" id="b2-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="b2-lbl">0 / 5</div>
+      </div>
+    </div>
+
+    <!-- B3 -->
+    <div class="phase s-red" id="b3">
+      <div class="phase-head" onclick="toggle('b3')">
+        <div class="phase-num">3</div>
+        <div class="phase-name">Schema + Models</div>
+        <div class="phase-badge">Aguarda campos</div>
+        <div class="chevron" id="b3-ch">▶</div>
+      </div>
+      <div class="tasks" id="b3-tasks">
+        <div class="wait-note">⚠ Aguardando: definição dos campos e checkboxes do formulário</div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text"><code>init.sql</code> com CREATE TABLE completo + indexes</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">SQLAlchemy ORM model (<code>models/registro.py</code>)</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Colunas de auditoria: <span class="task-tag">registrado_por</span> <span class="task-tag">registrado_em</span> <span class="task-tag">metodo_entrada</span></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Migration inicial com Alembic (<code>alembic revision --autogenerate</code>)</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Index em <code>codigo_barras</code> e <code>registrado_em</code> para queries rápidas</div></div>
+      </div>
+      <div class="progress-row" id="b3-prog">
+        <div class="progress-bar"><div class="progress-fill" id="b3-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="b3-lbl">0 / 5</div>
+      </div>
+    </div>
+
+    <!-- B4 -->
+    <div class="phase s-purple" id="b4">
+      <div class="phase-head" onclick="toggle('b4')">
+        <div class="phase-num">4</div>
+        <div class="phase-name">Endpoints da API</div>
+        <div class="phase-badge">Depende de F3</div>
+        <div class="chevron" id="b4-ch">▶</div>
+      </div>
+      <div class="tasks" id="b4-tasks">
+        <div class="dep-note">↳ Só após Backend F3 (schema definido)</div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text"><code>POST /registros</code> — criar registro (aceita array para sync batch)</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text"><code>GET /registros</code> — listar com paginação e filtros por data</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text"><code>GET /registros/{id}</code> — detalhe de um registro</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Schemas Pydantic: <code>RegistroCreate</code>, <code>RegistroResponse</code></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Rate limiting: 60 req/min por IP com <span class="task-tag">slowapi</span></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Documentação automática Swagger em <code>/docs</code></div></div>
+      </div>
+      <div class="progress-row" id="b4-prog">
+        <div class="progress-bar"><div class="progress-fill" id="b4-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="b4-lbl">0 / 6</div>
+      </div>
+    </div>
+
+    <!-- B5 -->
+    <div class="phase s-amber" id="b5">
+      <div class="phase-head" onclick="toggle('b5')">
+        <div class="phase-num">5</div>
+        <div class="phase-name">HTTPS + Infra</div>
+        <div class="phase-badge">Aguarda decisão HTTPS</div>
+        <div class="chevron" id="b5-ch">▶</div>
+      </div>
+      <div class="tasks" id="b5-tasks">
+        <div class="wait-note">⚠ Aguardando: escolha entre mkcert / Cloudflare Tunnel / Caddy</div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Configurar HTTPS escolhido + testar câmera no celular real</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text"><code>docker-compose.prod.yml</code>: porta 5432 do PostgreSQL não exposta externamente</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Restart policies (<code>unless-stopped</code>) em todos os serviços</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Script de backup do volume PostgreSQL (cron diário)</div></div>
+      </div>
+      <div class="progress-row" id="b5-prog">
+        <div class="progress-bar"><div class="progress-fill" id="b5-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="b5-lbl">0 / 4</div>
+      </div>
+    </div>
+
+    <!-- B6 -->
+    <div class="phase s-purple" id="b6">
+      <div class="phase-head" onclick="toggle('b6')">
+        <div class="phase-num">6</div>
+        <div class="phase-name">Testes</div>
+        <div class="phase-badge">Depende de F4</div>
+        <div class="chevron" id="b6-ch">▶</div>
+      </div>
+      <div class="tasks" id="b6-tasks">
+        <div class="dep-note">↳ Só após Backend F4 (endpoints implementados)</div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Setup: <span class="task-tag">pytest</span> <span class="task-tag">httpx</span> + banco de teste isolado</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Teste: <code>POST /registros</code> com payload válido e inválido</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Teste: <code>POST /registros</code> em batch (múltiplos registros do sync offline)</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Teste: rate limiting dispara corretamente</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Teste: banco indisponível retorna 503 (não 500)</div></div>
+      </div>
+      <div class="progress-row" id="b6-prog">
+        <div class="progress-bar"><div class="progress-fill" id="b6-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="b6-lbl">0 / 5</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ FRONTEND ═══ -->
+  <div>
+    <div class="track-label">
+      ⚛ Frontend
+      <span style="background:#ede9fe;color:#5b21b6">React · Vite · PWA · Dexie.js</span>
+    </div>
+
+    <!-- F1 -->
+    <div class="phase s-green" id="f1">
+      <div class="phase-head" onclick="toggle('f1')">
+        <div class="phase-num">1</div>
+        <div class="phase-name">Setup do Projeto</div>
+        <div class="phase-badge">Pronto para iniciar</div>
+        <div class="chevron" id="f1-ch">▶</div>
+      </div>
+      <div class="tasks" id="f1-tasks">
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text"><code>npm create vite@latest -- --template react-ts</code></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Tailwind CSS + PostCSS configurado</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text"><span class="task-tag">vite-plugin-pwa</span> com manifest (nome, ícone, theme_color)</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Estrutura de pastas: <code>/components, /hooks, /db, /services, /pages</code></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Variável de ambiente: <span class="task-tag">VITE_API_URL</span></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">ESLint + Prettier configurados</div></div>
+      </div>
+      <div class="progress-row" id="f1-prog">
+        <div class="progress-bar"><div class="progress-fill" id="f1-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="f1-lbl">0 / 6</div>
+      </div>
+    </div>
+
+    <!-- F2 -->
+    <div class="phase s-red" id="f2">
+      <div class="phase-head" onclick="toggle('f2')">
+        <div class="phase-num">2</div>
+        <div class="phase-name">Dexie.js — Schema Local</div>
+        <div class="phase-badge">Aguarda campos</div>
+        <div class="chevron" id="f2-ch">▶</div>
+      </div>
+      <div class="tasks" id="f2-tasks">
+        <div class="wait-note">⚠ Aguardando: campos do formulário para montar o schema IndexedDB</div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Instalar <span class="task-tag">dexie</span></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text"><code>db.ts</code>: tabela <code>registros</code> + tabela <code>sync_queue</code></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Campos de controle: <span class="task-tag">sincronizado</span> <span class="task-tag">tentativas_sync</span> <span class="task-tag">criado_em</span></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Hook <code>useRegistros()</code> para leitura reativa</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Função <code>salvarRegistro()</code> que escreve local e adiciona à fila</div></div>
+      </div>
+      <div class="progress-row" id="f2-prog">
+        <div class="progress-bar"><div class="progress-fill" id="f2-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="f2-lbl">0 / 5</div>
+      </div>
+    </div>
+
+    <!-- F3 -->
+    <div class="phase s-green" id="f3">
+      <div class="phase-head" onclick="toggle('f3')">
+        <div class="phase-num">3</div>
+        <div class="phase-name">Scanner de Código de Barras</div>
+        <div class="phase-badge">Pronto para iniciar</div>
+        <div class="chevron" id="f3-ch">▶</div>
+      </div>
+      <div class="tasks" id="f3-tasks">
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Instalar <span class="task-tag">html5-qrcode</span></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Componente <code>&lt;BarcodeScanner onResult={fn} /&gt;</code></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Fallback visual se câmera negada ou não suportada</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Debounce 800ms para evitar leituras duplas do mesmo código</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Feedback sonoro/vibração ao ler código com sucesso</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Teste em celular real com HTTPS ativo</div></div>
+      </div>
+      <div class="progress-row" id="f3-prog">
+        <div class="progress-bar"><div class="progress-fill" id="f3-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="f3-lbl">0 / 6</div>
+      </div>
+    </div>
+
+    <!-- F4 -->
+    <div class="phase s-red" id="f4">
+      <div class="phase-head" onclick="toggle('f4')">
+        <div class="phase-num">4</div>
+        <div class="phase-name">Formulário de Registro</div>
+        <div class="phase-badge">Aguarda campos</div>
+        <div class="chevron" id="f4-ch">▶</div>
+      </div>
+      <div class="tasks" id="f4-tasks">
+        <div class="wait-note">⚠ Aguardando: campos, tipos e checkboxes do formulário</div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Instalar <span class="task-tag">react-hook-form</span> + <span class="task-tag">zod</span></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Componente <code>&lt;RegistroForm /&gt;</code> com todos os campos</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Campo <code>codigo_barras</code> integrado com <code>&lt;BarcodeScanner /&gt;</code> (auto-fill)</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Validação client-side com Zod (campo obrigatório, formato)</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Submit: salvar no Dexie.js + feedback de confirmação</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Reset do formulário após salvar + foco no scanner</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Layout responsivo mobile-first (Tailwind)</div></div>
+      </div>
+      <div class="progress-row" id="f4-prog">
+        <div class="progress-bar"><div class="progress-fill" id="f4-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="f4-lbl">0 / 7</div>
+      </div>
+    </div>
+
+    <!-- F5 -->
+    <div class="phase s-purple" id="f5">
+      <div class="phase-head" onclick="toggle('f5')">
+        <div class="phase-num">5</div>
+        <div class="phase-name">Sync Engine</div>
+        <div class="phase-badge">Depende de F2 + Backend F4</div>
+        <div class="chevron" id="f5-ch">▶</div>
+      </div>
+      <div class="tasks" id="f5-tasks">
+        <div class="dep-note">↳ Só após Frontend F2 (schema) e Backend F4 (endpoint POST /registros)</div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Hook <code>useSyncEngine()</code> — inicializado no <code>App.tsx</code></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Listener <code>window.addEventListener('online', syncNow)</code></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Drain da fila: <code>POST /registros</code> em batch ao reconectar</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Retry com backoff exponencial: 1s → 2s → 4s → 8s (máx 3 tentativas)</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Badge visual: <code>"N registros pendentes"</code> quando offline</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">⚠ iOS Safari: sem Background Sync — sync apenas com app aberto</div></div>
+      </div>
+      <div class="progress-row" id="f5-prog">
+        <div class="progress-bar"><div class="progress-fill" id="f5-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="f5-lbl">0 / 6</div>
+      </div>
+    </div>
+
+    <!-- F6 -->
+    <div class="phase s-purple" id="f6">
+      <div class="phase-head" onclick="toggle('f6')">
+        <div class="phase-num">6</div>
+        <div class="phase-name">PWA + Build Final</div>
+        <div class="phase-badge">Depende de todas as fases</div>
+        <div class="chevron" id="f6-ch">▶</div>
+      </div>
+      <div class="tasks" id="f6-tasks">
+        <div class="dep-note">↳ Só após todas as fases de Frontend e Backend F5 (HTTPS ativo)</div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Service Worker (Workbox): Cache First para assets, Network First para API</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Web App Manifest: ícone 192px + 512px, <code>display: standalone</code></div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Teste de instalação: "Adicionar à tela inicial" no Android e iOS</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text"><code>npm run build</code> + servir build via Caddy/Nginx ou manter em Netlify</div></div>
+        <div class="task-item"><div class="cb" onclick="check(this)"></div><div class="task-text">Teste end-to-end: escanear → salvar offline → reconectar → sync confirmado</div></div>
+      </div>
+      <div class="progress-row" id="f6-prog">
+        <div class="progress-bar"><div class="progress-fill" id="f6-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="f6-lbl">0 / 5</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const totals = {
+    b1:7, b2:5, b3:5, b4:6, b5:4, b6:5,
+    f1:6, f2:5, f3:6, f4:7, f5:6, f6:5
+  };
+
+  function toggle(id) {
+    const tasks = document.getElementById(id + '-tasks');
+    const ch    = document.getElementById(id + '-ch');
+    const open  = tasks.classList.toggle('open');
+    ch.classList.toggle('open', open);
+  }
+
+  function check(el) {
+    const done = el.classList.toggle('checked');
+    const taskText = el.nextElementSibling;
+    taskText.classList.toggle('done', done);
+    updateProgress(el);
+  }
+
+  function updateProgress(el) {
+    const tasksEl = el.closest('.tasks');
+    const phaseId = tasksEl.id.replace('-tasks', '');
+    const total   = totals[phaseId] || 0;
+    const checked = tasksEl.querySelectorAll('.cb.checked').length;
+    const pct     = total ? Math.round(checked / total * 100) : 0;
+    document.getElementById(phaseId + '-fill').style.width = pct + '%';
+    document.getElementById(phaseId + '-lbl').textContent  = checked + ' / ' + total;
+  }
+
+  // Open first ready phase of each track by default
+  toggle('b1'); toggle('f1');
+</script>
+</body>
+</html>

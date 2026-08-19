@@ -1,7 +1,9 @@
+from http.client import HTTP_PORT
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from http import HTTPStatus
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,7 +24,7 @@ router = APIRouter(
 
 
 @router.post(
-    '/', response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED
+    '/', response_model=UsuarioResponse, status_code=HTTPStatus.CREATED
 )
 async def create_usuario(
     user_in: UsuarioCreate, db: Annotated[AsyncSession, Depends(get_db)]
@@ -32,7 +34,7 @@ async def create_usuario(
     result = await db.execute(stmt)
     if result.scalars().first():
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
+            status_code=HTTPStatus.CONFLICT,
             detail='Email ja cadastrado',
         )
 
@@ -65,7 +67,7 @@ async def read_usuario(
 ):
     user = await db.get(Usuario, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail='Usuario nao encontrado')
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='Usuario nao encontrado')
     return user
 
 
@@ -77,7 +79,7 @@ async def update_usuario(
 ):
     user = await db.get(Usuario, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail='Usuario nao encontrado')
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='Usuario nao encontrado')
 
     update_data = user_in.model_dump(exclude_unset=True)
     if 'senha' in update_data:
@@ -91,13 +93,13 @@ async def update_usuario(
     return user
 
 
-@router.delete('/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
+@router.delete('/{user_id}', status_code=HTTPStatus.NO_CONTENT)
 async def delete_usuario(
     user_id: UUID, db: Annotated[AsyncSession, Depends(get_db)]
 ):
     user = await db.get(Usuario, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail='Usuario nao encontrado')
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='Usuario nao encontrado')
 
     user.ativo = False
     await db.commit()

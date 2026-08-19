@@ -23,6 +23,6 @@ class UsuarioUpdate(BaseModel):
 
 class UsuarioResponse(UsuarioBase):
     id: UUID
-    criado_em: datetime
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

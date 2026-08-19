@@ -1,32 +1,25 @@
+from http import HTTPStatus
+
 import datetime
 from typing import Annotated, Any
 
-import jwt
-from fastapi import Depends, HTTPException, status
+from jwt import DecodeError, ExpiredSignatureError, decode, encode
+from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forms_inventario.config import settings
-from forms_inventario.database import get_db
+from forms_inventario.settings import Settings
+from forms_inventario.database import get_session
 from forms_inventario.models import Usuario
 
-ALGORITHM = 'HS256'
+settings = Settings()
 
 pwd_context = PasswordHash.recommended()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='auth/login')
-
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
+T_Session: Annotated[AsyncSession, Depends(get_session)]
 
 def create_access_token(
     data: dict[str, Any], expires_delta: datetime.timedelta | None = None
@@ -37,36 +30,56 @@ def create_access_token(
     else:
         expire = datetime.datetime.now(
             datetime.timezone.utc
-        ) + datetime.timedelta(minutes=settings.access_token_expire_minutes)
+        ) + datetime.timedelta(minutes=settings.ACCESS_TOKEN_EXPITE_MINUTES)
     to_encode.update({'exp': expire})
-    encoded_jwt = jwt.encode(
-        to_encode, settings.secret_key, algorithm=ALGORITHM
+    encoded_jwt = encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
     )
     return encoded_jwt
 
 
+def get_password_hash(password: str):
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str):
+    return pwd_context.verify(plain_password, hashed_password)
+
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl='auth/login', refreshUrl='/auth/refresh'
+)
+
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> Usuario:
+    session: T_Session,
+    token: str = Depends(oauth2_scheme),
+):
     credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail='Nao foi possivel validar as credenciais',
+        status_code=HTTPStatus.UNAUTHORIZED,
+        detail='Could not validate credentials',
         headers={'WWW-Authenticate': 'Bearer'},
     )
 
     try:
-        payload = jwt.decode(
-            token, settings.secret_key, algorithms=[ALGORITHM]
+        payload = decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
         )
-        email: str | None = payload.get('sub')
-        if email is None:
+        subject_email = payload.get('sub')
+        
+        if not subject_email:
             raise credentials_exception
-    except InvalidTokenError:
+
+    except DecodeError:
         raise credentials_exception
 
-    stmt = select(Usuario).where(Usuario.email == email)
-    result = await db.execute(stmt)
+    except ExpiredSignatureError:
+        raise credentials_exception
+
+    result = await session.scalar(
+        select(Usuario).where(Usuario.email == subject_email)
+    )
+
     user = result.scalars().first()
 
     if user is None:
@@ -74,7 +87,7 @@ async def get_current_user(
 
     if not user.ativo:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail='Usuario inativo'
+            status_code=HTTPStatus.BAD_REQUEST, detail='Usuario inativo'
         )
 
     return user

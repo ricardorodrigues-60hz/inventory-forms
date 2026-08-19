@@ -1,20 +1,34 @@
+from pygments.lexer import default
+from alembic.command import init
+from datetime import datetime
+
 import uuid
 
-from sqlalchemy import Boolean, Column, DateTime, String
+
+from sqlalchemy import Boolean, Column, DateTime, String, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_as_dataclass,
+    mapped_column,
+    registry,
+)
 
-from forms_inventario.database import Base
 
+table_registry = registry()
 
-class Usuario(Base):
+@mapped_as_dataclass(table_registry)
+class Usuario:
     __tablename__ = 'usuarios'
 
-    id = Column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True
+    id: Mapped[UUID] = mapped_column(init=False, primary_key=True)
+    nome: Mapped[str] = mapped_column(unique=True)
+    email: Mapped[str] = mapped_column(unique=True)
+    senha_hash: Mapped[str] = mapped_column()
+    ativo: Mapped[Boolean] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        init=False, server_default=func.now()
     )
-    nome = Column(String, nullable=False)
-    email = Column(String, unique=True, index=True, nullable=False)
-    senha_hash = Column(String, nullable=False)
-    ativo = Column(Boolean, default=True)
-    criado_em = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column( 
+        init=False, server_default=func.now(), onupdate=func.now()
+    )

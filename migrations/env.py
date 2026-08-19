@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 # Importar configurações e Base da aplicação
-from forms_inventario.config import settings
+from forms_inventario.settings import settings
 from forms_inventario.models import Base
 
 # this is the Alembic Config object, which provides

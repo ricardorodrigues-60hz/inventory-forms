@@ -1,14 +1,14 @@
-from http import HTTPStatus
 import logging
 from contextlib import asynccontextmanager
+from http import HTTPStatus
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from forms_inventario.settings import settings
 from forms_inventario.database import engine
 from forms_inventario.routers import auth, registros, usuarios
+from forms_inventario.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ app.include_router(auth.router)
 app.include_router(usuarios.router)
 app.include_router(registros.router)
 
-origins = [origin.strip() for origin in settings.cors_origins.split(',')]
+origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(',')]
 
 app.add_middleware(
     CORSMiddleware,

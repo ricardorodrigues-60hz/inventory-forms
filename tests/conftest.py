@@ -1,91 +1,120 @@
-import asyncio
+from contextlib import contextmanager
+from datetime import datetime
 from typing import AsyncGenerator
 
+import factory
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.pool import StaticPool
 
 from forms_inventario.app import app
-from forms_inventario.database import Base, get_db
-from forms_inventario.models import Usuario
+from forms_inventario.database import get_session, table_registry
+from forms_inventario.models import Registro, Usuario
 from forms_inventario.security import get_password_hash
 
-# Banco em memoria para os testes
 SQLALCHEMY_DATABASE_URL = 'sqlite+aiosqlite:///:memory:'
 
-engine = create_async_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={'check_same_thread': False},
-    poolclass=StaticPool,
-)
 
-TestingSessionLocal = async_sessionmaker(
-    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
-)
+@pytest_asyncio.fixture
+async def session() -> AsyncGenerator[AsyncSession, None]:
+    engine = create_async_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={'check_same_thread': False},
+        poolclass=StaticPool,
+    )
+    async with engine.begin() as conn:
+        await conn.run_sync(table_registry.metadata.create_all)
 
-
-async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with TestingSessionLocal() as session:
+    async with AsyncSession(engine, expire_on_commit=False) as session:
         yield session
 
-
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture(scope='session')
-def event_loop():
-    """Create an instance of the default event loop for each test case."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest_asyncio.fixture(autouse=True)
-async def setup_db():
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(table_registry.metadata.drop_all)
 
 
 @pytest_asyncio.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    async with TestingSessionLocal() as session:
-        yield session
+async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    def get_session_override():
+        return session
 
-
-@pytest_asyncio.fixture
-async def client() -> AsyncGenerator[AsyncClient, None]:
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url='http://test'
-    ) as ac:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as ac:
+        app.dependency_overrides[get_session] = get_session_override
         yield ac
 
+    app.dependency_overrides.clear()
+
+
+@contextmanager
+def _mock_db_time(*, model, time=datetime(2025, 5, 20)):
+    def fake_time_hook(mapper, connection, target):
+        if hasattr(target, 'created_at'):
+            target.created_at = time
+
+        if hasattr(target, 'updated_at'):
+            target.updated_at = time
+
+    event.listen(model, 'before_insert', fake_time_hook)
+
+    yield time
+
+    event.remove(model, 'before_insert', fake_time_hook)
+
+
+@pytest.fixture
+def mock_db_time():
+    return _mock_db_time
+
 
 @pytest_asyncio.fixture
-async def usuario_logado(db_session: AsyncSession) -> Usuario:
-    user = Usuario(
-        nome='Teste',
-        email='teste@teste.com',
-        senha_hash=get_password_hash('123456'),
-        ativo=True,
-    )
-    db_session.add(user)
-    await db_session.commit()
-    await db_session.refresh(user)
+async def usuario(session: AsyncSession) -> Usuario:
+    password = 'testest'
+    user = UsuarioFactory(senha_hash=get_password_hash(password))
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    user.clean_password = password
     return user
 
 
 @pytest_asyncio.fixture
-async def token_valido(client: AsyncClient, usuario_logado: Usuario) -> str:
+async def outro_usuario(session: AsyncSession) -> Usuario:
+    password = 'testest'
+    user = UsuarioFactory(senha_hash=get_password_hash(password))
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    user.clean_password = password
+    return user
+
+
+@pytest_asyncio.fixture
+async def token_valido(client: AsyncClient, usuario: Usuario) -> str:
     response = await client.post(
-        '/auth/login', json={'email': 'teste@teste.com', 'senha': '123456'}
+        '/auth/login',
+        json={'email': usuario.email, 'senha': usuario.clean_password},
     )
     return response.json()['access_token']
+
+
+class UsuarioFactory(factory.Factory):
+    class Meta:
+        model = Usuario
+
+    nome = factory.Sequence(lambda n: f'usuario{n}')
+    email = factory.LazyAttribute(lambda obj: f'{obj.nome}@test.com')
+    senha_hash = factory.LazyAttribute(lambda obj: f'{obj.nome}@example.com')
+    ativo = True
+
+
+class RegistroFactory(factory.Factory):
+    class Meta:
+        model = Registro
+
+    num_patrimonio = factory.Sequence(lambda n: f'PAT{n:06d}')
+    setor = 'TI'
+    local_especifico = 'Sala Servidores'
+    tipo_maquina = 'MASTER'
+    registrado_em_dispositivo = datetime(2025, 1, 1, 10, 0, 0)

@@ -26,16 +26,18 @@ dev = [
     "ruff (>=0.16.3,<0.17.0)",
     "typos (>=1.49.0,<2.0.0)",
     "httpx (>=0.28.1,<0.29.0)",
-    "pytest-asyncio (>=1.4.0,<2.0.0)"
+    "pytest-asyncio (>=1.4.0,<2.0.0)",
+    "factory-boy (>=3.3.3,<4.0.0)",
+    "freezegun (>=1.5.5,<2.0.0)"
 ]
 
 [tool.ruff]
-line-length = 79
+line-length = 100
 extend-exclude = ['migrations']
 
 [tool.ruff.lint]
 preview = true
-select = ['I', 'F', 'E', 'W', 'PL', 'PT']
+select = ['I', 'F', 'E', 'W', 'PL', 'PT', 'FAST']
 
 [tool.ruff.format]
 preview = true
@@ -43,9 +45,10 @@ quote-style = 'single'
 
 [tool.pytest]
 pythonpath = ['.']
-addopts = ['-p', 'no:warnings', '--cov=forms_inventario', '--cov-context=test']
+addopts = ['-p', 'no:warnings', '--cov=forms_inventario', '--cov-context=test', '--cov-branch']
 
 [tool.poe.tasks]
+pre_lint = "typos"
 lint = "ruff check"
 format.sequence = [
   { cmd = "ruff check --fix" },

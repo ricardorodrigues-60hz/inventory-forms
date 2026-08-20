@@ -1,10 +1,11 @@
+from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from forms_inventario.database import get_db
+from forms_inventario.database import get_session
 from forms_inventario.models import Usuario
 from forms_inventario.schemas import (
     LoginRequest,
@@ -22,18 +23,16 @@ router = APIRouter(
     tags=['auth'],
 )
 
+T_Session = Annotated[AsyncSession, Depends(get_session)]
+
 
 @router.post('/login', response_model=TokenResponse)
-async def login(
-    req: LoginRequest, db: Annotated[AsyncSession, Depends(get_db)]
-):
-    stmt = select(Usuario).where(Usuario.email == req.email)
-    result = await db.execute(stmt)
-    user = result.scalars().first()
+async def login(req: LoginRequest, session: T_Session):
+    user = await session.scalar(select(Usuario).where(Usuario.email == req.email))
 
     if not user or not verify_password(req.senha, user.senha_hash):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
+            status_code=HTTPStatus.UNAUTHORIZED,
             detail='Email ou senha incorretos',
             headers={'WWW-Authenticate': 'Bearer'},
         )
